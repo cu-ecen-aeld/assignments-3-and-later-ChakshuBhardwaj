@@ -21,6 +21,9 @@ jobs:
             run: ./unit-test.sh
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 0250a479f963437c2ae8188e6a8c5ea91e9383ed
     full-test:
         container: cuaesd/aesd-autotest:assignment1
         runs-on: ubuntu-latest
@@ -36,7 +39,10 @@ jobs:
           - name: Run full test
             run: ./full-test.sh
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> assignments-base/assignment3-part-1
 =======
 >>>>>>> assignments-base/assignment3-part-2
+=======
+>>>>>>> 0250a479f963437c2ae8188e6a8c5ea91e9383ed
