@@ -1,4 +1,5 @@
 #include "systemcalls.h"
+<<<<<<< HEAD
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -7,6 +8,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+=======
+>>>>>>> assignments-base/assignment3-part-2
 
 /**
  * @param cmd the command to execute with system()
@@ -24,12 +27,17 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+<<<<<<< HEAD
     int retval = 0;
     retval = system(cmd);
     if(retval == 0)
         return true;
     else
         return false;
+=======
+
+    return true;
+>>>>>>> assignments-base/assignment3-part-2
 }
 
 /**
@@ -52,9 +60,12 @@ bool do_exec(int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+<<<<<<< HEAD
     pid_t childID, waitID;
     int status;
 
+=======
+>>>>>>> assignments-base/assignment3-part-2
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
@@ -73,6 +84,7 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+<<<<<<< HEAD
     if (strstr(command[0],"/") == NULL)
     {
         return false;
@@ -116,6 +128,8 @@ bool do_exec(int count, ...)
        return true;
 
     }
+=======
+>>>>>>> assignments-base/assignment3-part-2
 
     va_end(args);
 
@@ -133,10 +147,13 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+<<<<<<< HEAD
     int fd;
     pid_t childID, waitID;
     int status;
     //ssize_t BytesReadWrite;
+=======
+>>>>>>> assignments-base/assignment3-part-2
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
@@ -144,7 +161,11 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
+<<<<<<< HEAD
     //command[count] = command[count];
+=======
+    command[count] = command[count];
+>>>>>>> assignments-base/assignment3-part-2
 
 
 /*
@@ -153,6 +174,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   redirect standard out to a file specified by outputfile.
  *   The rest of the behaviour is same as do_exec()
  *
+<<<<<<< HEAD
 */   
     
 
@@ -220,6 +242,9 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 
     }
     
+=======
+*/
+>>>>>>> assignments-base/assignment3-part-2
 
     va_end(args);
 

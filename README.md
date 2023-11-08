@@ -19,7 +19,11 @@ The basis of the automated test implementation for this repository comes from [h
 
 The assignment-autotest directory contains scripts useful for automated testing  Use
 ```
+<<<<<<< HEAD
 git submodule update --init --recursive
+=======
+git submodule init update --recursive
+>>>>>>> assignments-base/assignment3-part-2
 ```
 to synchronize after cloning and before starting each assignment, as discussed in the assignment instructions.
 

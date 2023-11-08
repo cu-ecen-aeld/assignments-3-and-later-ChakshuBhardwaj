@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 ChakshuBhardwaj
+=======
+your-github-username-here-in-conf-file
+>>>>>>> assignments-base/assignment3-part-2

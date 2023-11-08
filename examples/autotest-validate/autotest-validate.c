@@ -27,5 +27,9 @@ bool this_function_returns_false()
  */
 const char *my_username()
 {
+<<<<<<< HEAD
     return "ChakshuBhardwaj";
+=======
+    return "todo-please-enter-your-username-here-in-my_username";
+>>>>>>> assignments-base/assignment3-part-2
 }
