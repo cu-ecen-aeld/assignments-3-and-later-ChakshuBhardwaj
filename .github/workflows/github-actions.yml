@@ -8,41 +8,19 @@ on:
 jobs:
     unit-test:
         container: cuaesd/aesd-autotest:unit-test
-<<<<<<< HEAD
         runs-on: ubuntu-latest
-=======
-        runs-on: self-hosted
->>>>>>> assignments-base/assignment3-part-2
         steps:
           - uses: actions/checkout@v2
           - name: Checkout submodules
             run : git submodule update --init --recursive
           - name: Run unit test
             run: ./unit-test.sh
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 0250a479f963437c2ae8188e6a8c5ea91e9383ed
-    full-test:
-        container: cuaesd/aesd-autotest:assignment1
-        runs-on: ubuntu-latest
-=======
     full-test:
         container: cuaesd/aesd-autotest:assignment3
-        runs-on: self-hosted
->>>>>>> assignments-base/assignment3-part-2
+        runs-on: ubuntu-latest
         steps:
           - uses: actions/checkout@v2
           - name: Checkout submodules
             run : git submodule update --init --recursive
           - name: Run full test
             run: ./full-test.sh
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> assignments-base/assignment3-part-1
-=======
->>>>>>> assignments-base/assignment3-part-2
-=======
->>>>>>> 0250a479f963437c2ae8188e6a8c5ea91e9383ed
