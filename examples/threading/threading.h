@@ -18,7 +18,7 @@ struct thread_data
     // pthread_t mythread;
     int time_obtain_ms;
     int time_release_ms;
-    pthread_mutex_t MUTEX;
+    pthread_mutex_t *MUTEX;
 
     /**
      * Set to true if the thread completed with success, false
