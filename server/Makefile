@@ -11,8 +11,9 @@ endif
 C_STANDARD = gnu99
 C_WARNINGS = -Wpedantic -Wall -Wextra -std=$(C_STANDARD)
 CFLAGS = $(C_WARNINGS)
+LDFLAGS = -lpthread -pthread
 
-COMPILER_CALL = $(CC) $(CFLAGS)
+COMPILER_CALL = $(CC) $(CFLAGS) $(LDFLAGS)
 
 all: build
 default: build
