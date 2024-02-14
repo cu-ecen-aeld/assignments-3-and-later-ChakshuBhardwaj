@@ -1,17 +1,17 @@
-EXECUTABLE_NAME = aesdsocket
+EXECUTABLE_NAME ?= aesdsocket
 CROSS_COMPILE = 0
 
 ifeq ($(CROSS_COMPILE),0)
-CC = gcc
+CC ?= gcc
 else
-CC = $(CROSS_COMPILE)gcc
+CC ?= $(CROSS_COMPILE)gcc
 endif
 
 #ARCH = aarch64 (It is used to define the architecture of target device, not used in this code)
-C_STANDARD = gnu99
-C_WARNINGS = -Wpedantic -Wall -Wextra -std=$(C_STANDARD)
-CFLAGS = $(C_WARNINGS)
-LDFLAGS = -lpthread -pthread
+C_STANDARD ?= gnu99
+C_WARNINGS ?= -Wpedantic -Wall -Wextra -std=$(C_STANDARD)
+CFLAGS ?= $(C_WARNINGS)
+LDFLAGS ?= -lpthread -pthread
 
 COMPILER_CALL = $(CC) $(CFLAGS) $(LDFLAGS)
 
