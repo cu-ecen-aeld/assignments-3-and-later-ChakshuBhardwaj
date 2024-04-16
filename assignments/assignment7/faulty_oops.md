@@ -42,3 +42,6 @@ root@qemuarm64:~# echo "hello_world" > /dev/faulty
 [   97.196637] Code: d2800001 d2800000 d503233f d50323bf (b900003f) 
 [   97.197107] ---[ end trace de6f4eddd2b02b93 ]---
 Segmentation fault
+
+
+The issue occured when we tried to write to the /dev/faulty device. This error shows that there is a segmentation fault at the faulty_write() function which occured due to null pointer dereference.
