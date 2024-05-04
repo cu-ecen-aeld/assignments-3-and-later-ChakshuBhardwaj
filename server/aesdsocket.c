@@ -322,26 +322,26 @@ void *SendAndReceive(__attribute__((unused)) void *arg)
 void *TimerRoutine(__attribute__((unused)) void *argument)
 {
 
-    while (IsDone)
-    {
-        t = time(NULL);
-        Info = localtime(&t);
-        strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", Info);
-        strcat(s, "\n");
-        memset(timestring, 0, 200);
-        strcpy(timestring, "timestamp:");
-        strcat(timestring, s);
-        sleep(10);
-        pthread_mutex_lock(&Lock);
-        file = fopen(fileaddress, filewritepermissions);
-        if (file == NULL)
-        {
-            printf("Unable to open file\n");
-            exit(EXIT_FAILURE);
-        }
-        fprintf(file, "%s", timestring);
-        fclose(file);
-        pthread_mutex_unlock(&Lock);
-    }
+    // while (IsDone)
+    // {
+    //     t = time(NULL);
+    //     Info = localtime(&t);
+    //     strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", Info);
+    //     strcat(s, "\n");
+    //     memset(timestring, 0, 200);
+    //     strcpy(timestring, "timestamp:");
+    //     strcat(timestring, s);
+    //     sleep(10);
+    //     pthread_mutex_lock(&Lock);
+    //     file = fopen(fileaddress, filewritepermissions);
+    //     if (file == NULL)
+    //     {
+    //         printf("Unable to open file\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     fprintf(file, "%s", timestring);
+    //     fclose(file);
+    //     pthread_mutex_unlock(&Lock);
+    // }
     return 0;
 }
