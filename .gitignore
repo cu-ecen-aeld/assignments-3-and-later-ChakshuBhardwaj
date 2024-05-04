@@ -1,3 +1,5 @@
+#Files to ignore
+
 *.o
 writer
 Test_*_Runner.c
