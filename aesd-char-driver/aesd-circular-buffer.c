@@ -86,10 +86,12 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     /**
      * TODO: implement per description
      */
+    size_t i;
+    uint16_t j;
     buffer->TotalBytes = 0;
     if (buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
     {
-        for (size_t i = 0; i < (AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED - 1); i++)
+        for (i = 0; i < (AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED - 1); i++)
         {
             buffer->entry[i].buffptr = buffer->entry[i + 1].buffptr;
             buffer->entry[i].size = buffer->entry[i + 1].size;
@@ -102,9 +104,9 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     buffer->entry[buffer->in_offs].buffptr = add_entry->buffptr;
     buffer->entry[buffer->in_offs].size = add_entry->size;
     buffer->in_offs++;
-    for (uint16_t i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++)
+    for (j = 0; j < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; j++)
     {
-        buffer->TotalBytes = buffer->TotalBytes + buffer->entry[i].size;
+        buffer->TotalBytes = buffer->TotalBytes + buffer->entry[j].size;
     }
 }
 
