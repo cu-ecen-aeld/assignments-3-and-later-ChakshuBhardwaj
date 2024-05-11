@@ -420,7 +420,7 @@ int tcp_select(int sockfd)
 int tcp_getopt(int argc, char *argv[])
 {
 
-    int ch;
+    int ch, discard;
 
     while ((ch = getopt(argc, argv, "d")) != -1)
     {
@@ -428,7 +428,7 @@ int tcp_getopt(int argc, char *argv[])
         {
         case 'd':
             printf("Convert %s into daemon.\n", __FILE__);
-            daemon(1, 0);
+            discard = daemon(1, 0);
             LOGGING("Running as daemon");
             return true;
         }
