@@ -36,7 +36,6 @@ int aesd_open(struct inode *inode, struct file *filp)
      * TODO: handle open
      */
 
-    // get the aesd_dev structure from the c_dev pointer from inode
     filp->private_data = container_of(inode->i_cdev, struct aesd_dev, cdev);
 
     return 0;
@@ -63,7 +62,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     /**
      * TODO: handle read
      */
-    /* first check for arguments */
+
     if ((filp == NULL) || (f_pos == NULL))
     {
         return -EINVAL;
@@ -79,11 +78,9 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
         return -EINVAL;
     }
 
-    // lock mutex
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
 
-    // find the entry offset for fpos in the aesd circular buffer
     p_entry = aesd_circular_buffer_find_entry_offset_for_fpos(&dev->circular_buffer, *f_pos, &entry_offset);
     if (p_entry == NULL)
     {
@@ -91,7 +88,6 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
         goto out;
     }
 
-    /* Adjust count if need be */
     if (count > (p_entry->size - entry_offset))
     {
         count = p_entry->size - entry_offset;
@@ -123,7 +119,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     /**
      * TODO: handle write
      */
-    /* first check for arguments */
     if ((filp == NULL) || (f_pos == NULL))
     {
         return -EINVAL;
@@ -141,13 +136,10 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         return -EINVAL;
     }
 
-    // lock mutex
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
 
-    /* allocate memory for each write command as it is recived */
-    // using the aesd_buffer_entry struct that defined in the aesd_dev struct to save the recived commands
-    presult = krealloc(dev->entry.buffptr, count + dev->entry.size, GFP_KERNEL); // using krealloc() help to cover the case of unterminated command
+    presult = krealloc(dev->entry.buffptr, count + dev->entry.size, GFP_KERNEL);
     if (presult == NULL)
     {
         PDEBUG("Failed to allocate memory for circular buffer entry!");
@@ -155,8 +147,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         goto out;
     }
 
-    /* copy user data to buffer */
-    // write starting from wrote to before start  + size
     if (copy_from_user((char *)presult + dev->entry.size, buf, count))
     {
         PDEBUG("Failed to copy from user buffer!");
@@ -167,17 +157,11 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     dev->entry.buffptr = presult;
     dev->entry.size += count;
 
-    /* looking for \n character for terminated command */
     if (memchr(dev->entry.buffptr, '\n', dev->entry.size))
     {
 
-        // add entry to the buffer in case the command completed with terminal sign \n
         const char *replaced_buffer = aesd_circular_buffer_add_entry(&(dev->circular_buffer), &(dev->entry));
-
-        // deallocate the replaced buffer
         kfree(replaced_buffer);
-
-        // clear the entry buffer in the dev to used in the next command writting
         dev->entry.buffptr = NULL;
         dev->entry.size = 0;
     }
@@ -198,7 +182,6 @@ static loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
     size_t i = 0UL;
     struct aesd_buffer_entry *entry = NULL;
 
-    /* Acquire mutex */
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
 
@@ -209,22 +192,22 @@ static loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 
     switch (whence)
     {
-    case 0: /* SEEK_SET */
+    case 0:
         PDEBUG("SEEK_SET with offset %lld", off);
         newpos = off;
         break;
 
-    case 1: /* SEEK_CUR */
+    case 1:
         PDEBUG("SEEK_CUR with offset %lld", off);
         newpos = filp->f_pos + off;
         break;
 
-    case 2: /* SEEK_END */
+    case 2:
         PDEBUG("SEEK_END with offset %lld", off);
         newpos = size + off;
         break;
 
-    default: /* can't happen */
+    default:
         return -EINVAL;
     }
     if (newpos < 0)
@@ -256,21 +239,10 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     uint8_t i;
     struct aesd_buffer_entry *entry = NULL;
     printk("Ioctl called\n");
-    /*
-     * extract the type and number bitfields, and don't decode
-     * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
-     */
     if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC)
         return -ENOTTY;
     if (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR)
         return -ENOTTY;
-
-    /*
-     * the direction is a bitmask, and VERIFY_WRITE catches R/W
-     * transfers. `Type' is user-oriented, while
-     * access_ok is kernel-oriented, so the concept of "read" and
-     * "write" is reversed
-     */
     if (_IOC_DIR(cmd) & _IOC_READ)
         err = !access_ok((void __user *)arg, _IOC_SIZE(cmd));
     else if (_IOC_DIR(cmd) & _IOC_WRITE)
@@ -279,7 +251,6 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         return -EFAULT;
 
     dev = filp->private_data;
-    /* Acquire mutex */
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
 
@@ -319,7 +290,6 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         }
 
         filp->f_pos = size;
-        // printk("Fpos %d\n", size);
     }
 
 leave:
