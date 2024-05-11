@@ -140,7 +140,6 @@ int main(int argc, char *argv[])
             struct thread_data *param = NULL;
 
             SOCKET_LOGGING("initialize new thread data for %d", acceptfd);
-            // if ((param = thread_data_init(param, acceptfd, datafd, mutex)) == NULL)
             if ((param = thread_data_init(param, acceptfd, datafd, mutex)) == NULL)
             {
                 LOGGING("thread data initialize fail");
