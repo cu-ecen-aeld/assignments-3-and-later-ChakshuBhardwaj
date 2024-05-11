@@ -16,7 +16,7 @@
 #include <linux/printk.h>
 #include <linux/types.h>
 #include <linux/cdev.h>
-#include <linux/fs.h> // file_operations
+#include <linux/fs.h>
 #include <linux/slab.h>
 
 #include "aesdchar.h"
@@ -86,8 +86,6 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
         PDEBUG("position exceeds buffer size");
         goto out;
     }
-
-    /* Adjust count if need be */
     if (count > (p_entry->size - entry_offset))
     {
         count = p_entry->size - entry_offset;
