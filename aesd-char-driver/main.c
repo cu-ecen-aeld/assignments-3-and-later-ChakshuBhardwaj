@@ -62,7 +62,6 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     /**
      * TODO: handle read
      */
-
     if ((filp == NULL) || (f_pos == NULL))
     {
         return -EINVAL;
@@ -84,10 +83,11 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     p_entry = aesd_circular_buffer_find_entry_offset_for_fpos(&dev->circular_buffer, *f_pos, &entry_offset);
     if (p_entry == NULL)
     {
-        PDEBUG("position exceed buffer size");
+        PDEBUG("position exceeds buffer size");
         goto out;
     }
 
+    /* Adjust count if need be */
     if (count > (p_entry->size - entry_offset))
     {
         count = p_entry->size - entry_offset;
@@ -159,8 +159,8 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     if (memchr(dev->entry.buffptr, '\n', dev->entry.size))
     {
-
-        aesd_circular_buffer_add_entry(&(dev->circular_buffer), &(dev->entry));
+        const char *replaced_buffer = aesd_circular_buffer_add_entry(&(dev->circular_buffer), &(dev->entry));
+        kfree(replaced_buffer);
         dev->entry.buffptr = NULL;
         dev->entry.size = 0;
     }
@@ -237,7 +237,6 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
     uint8_t i;
     struct aesd_buffer_entry *entry = NULL;
-    printk("Ioctl called\n");
     if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC)
         return -ENOTTY;
     if (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR)
@@ -367,10 +366,7 @@ void aesd_cleanup_module(void)
     {
         kfree(entry->buffptr);
     }
-
-    printk("Freed buffers \n");
     mutex_destroy(&aesd_device.lock);
-    printk("Destroyed mutexss \n");
     unregister_chrdev_region(devno, 1);
 }
 
