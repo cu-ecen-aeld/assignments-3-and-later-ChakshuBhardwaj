@@ -8,8 +8,8 @@ ifeq ($(DEBUG),y)
 else
   DEBFLAGS = -O2
 endif
-LDDINC=$(PWD)/../include
-EXTRA_CFLAGS += $(DEBFLAGS) -I$(LDDINC)
+
+EXTRA_CFLAGS += $(DEBFLAGS)
 
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
