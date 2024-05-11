@@ -1,28 +1,40 @@
-EXECUTABLE_NAME ?= aesdsocket
-CROSS_COMPILE = 0
+# Makefile for the "aesdsocket" application
 
-ifeq ($(CROSS_COMPILE),0)
-CC ?= gcc
-else
+# Compiler and flags
 CC ?= $(CROSS_COMPILE)gcc
-endif
+CFLAGS ?= -g -Wall -Werror
+INCLUDE=$(dir $(abspath $(MAKEFILE_LIST)))
 
-#ARCH = aarch64 (It is used to define the architecture of target device, not used in this code)
-C_STANDARD ?= gnu99
-C_WARNINGS ?= -Wpedantic -Wall -Wextra -std=$(C_STANDARD)
-CFLAGS ?= $(C_WARNINGS)
-LDFLAGS ?= -lpthread -pthread
+# libraries to link
+LDFLAGS?= -lm -lpthread -lrt -lthreading -lmanipulate_file -lsignal_func
+OBJS=(filter-out aesdsocket.o $(patsubst %.c, %.o, $(wildcard *.c)))
+LIBS_TYPE=""
 
-COMPILER_CALL = $(CC) $(CFLAGS) $(LDFLAGS)
+.PHONY: all aesdsocket clean
 
-all: build
-default: build
+all: aesdsocket
 
-build: aesdsocket.o
-	@$(COMPILER_CALL) aesdsocket.o -o $(EXECUTABLE_NAME)	
+LIBS_TYPE="a"
+libmanipulate_file.$(LIBS_TYPE): manipulate_file
+	$(AR) -rc $@ $<.o
 
-clean:
-	@rm -f *.o && rm -f $(EXECUTABLE_NAME)
+libsignal_func.$(LIBS_TYPE): signal_func
+	$(AR) -rc $@ $<.o
 
-aesdsocket.o:
-	@$(COMPILER_CALL) aesdsocket.c -c
+libthreading.$(LIBS_TYPE): threading
+	$(AR) -rc $@ $<.o
+	
+aesdsocket: libthreading.$(LIBS_TYPE) libmanipulate_file.$(LIBS_TYPE) libsignal_func.$(LIBS_TYPE)
+	$(CC) $(CFLAGS) -o $@ $(@).c -L$(INCLUDE) $(LDFLAGS)
+
+manipulate_file:
+	$(CC) $(CFLAGS) -fPIC -c $@.c $(LDFLAGS)
+
+signal_func:
+	$(CC) $(CFLAGS) -fPIC -c $@.c $(LDFLAGS)
+
+threading:
+	$(CC) $(CFLAGS) -fPIC -c $@.c $(LDFLAGS)
+
+clean:	
+	$(RM) aesdsocket $(wildcard *.o) $(wildcard *.so) $(wildcard *.a)
