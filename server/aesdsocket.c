@@ -1,20 +1,4 @@
-/*
- * =====================================================================================
- *
- *       Filename:  aesdsocket.c
- *
- *    Description:  Assignment 6
- *
- *        Version:  2.0
- *        Created:  March 17, 2024.
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Youssef Essam
- *   Organization:
- *
- * =====================================================================================
- */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,10 +12,11 @@
 #include <signal.h>
 #include <errno.h>
 #include <pthread.h>
-
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdarg.h>
 #include "aesdsocket.h"
-#include "manipulate_file.h"
-#include "threading.h"
 
 #define USE_AESD_CHAR_DEVICE 1
 
@@ -41,20 +26,30 @@
 #define FILENAME "/var/tmp/aesdsocketdata"
 #endif
 
-/* Global variable */
-int signal_sign = 0;
-// define mutex pointer
-pthread_mutex_t *mutex = NULL;
-// Iterate over the list and print elements
-struct thread_list *current_thread;
-// define timer ID
-// timer_t timerid;
-// define file descriptor variable
-FILE *datafd;
-/* function prototype */
-int signal_setup(int, ...);
+int file_create(char *pathname, ...);
 
-// Define the list head structure
+int file_write(int fd, const char *buffer, int size);
+
+int file_size(int fd);
+
+int file_read(int fd, char *buffer, int size);
+
+void file_delete(char *file);
+
+int signal_setup(int number, ...);
+void timer_setup(int period, struct itimerval *timer, struct sigaction *sa);
+int start_timer(struct itimerval *timer);
+void stop_timer(struct itimerval *timer);
+// void thread_data_deinit(struct thread_data *param, pthread_t *ptid, int sockfd);
+// struct thread_data *thread_data_init(struct thread_data *param, int sockfd, FILE *datafd, pthread_mutex_t *mutex);
+
+extern struct thread_data *param;
+
+int signal_sign = 0;
+pthread_mutex_t *mutex = NULL;
+struct thread_list *current_thread;
+FILE *datafd;
+int signal_setup(int, ...);
 SLIST_HEAD(listhead, thread_list)
 head = SLIST_HEAD_INITIALIZER(head);
 
@@ -75,27 +70,19 @@ int main(int argc, char *argv[])
 #endif
 
     DEBUG_MSG("Welcom to socket Testing program");
-
-    // initialize the serv struct of my socket
     memset(&serv, 0, sizeof(struct sockaddr));
     serv.sin_addr.s_addr = htonl(INADDR_ANY);
     serv.sin_port = htons(9000);
     serv.sin_family = AF_INET;
-    // tcpfd = (struct fdset *) malloc(sizeof(struct fdset));
-
-    // initializing the mutex
     mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
     if (mutex == NULL)
     {
         ERROR_HANDLER(pthread_mutex_init);
     }
-
-    // DEBUG_MSG("mutex init\n");
     if (pthread_mutex_init(mutex, NULL) != 0)
     {
         ERROR_HANDLER(pthread_mutex_init);
     }
-    // Set syslog configuration up.
     openlog(NULL, LOG_PID, LOG_USER);
 
     sockfd = tcp_socket_setup(AF_INET, SOCK_STREAM, IPPROTO_TCP, serv, true);
@@ -126,7 +113,6 @@ int main(int argc, char *argv[])
         acceptfd = tcp_incoming_check(sockfd, &client, addrlen);
         if (acceptfd > 0)
         {
-            // Create/open a file to write the data received from a client.
             if (datafd == NULL)
             {
                 datafd = fopen(FILENAME, "a+");
@@ -136,7 +122,6 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
             }
-/* start timer stampe in file /var/tmp/aesdsocketdata*/
 #if (USE_AESD_CHAR_DEVICE == 0)
             if (!timer_start)
             {
@@ -144,43 +129,32 @@ int main(int argc, char *argv[])
                 timer_start = 1;
             }
 #endif
-            // printf("Accepted connection from %s:%d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
             SOCKET_LOGGING("Accepted connection from %d", acceptfd);
-            // define variable to receive thread data parameters in
             struct thread_data *param = NULL;
-
-            // initialize the thread data
             SOCKET_LOGGING("initialize new thread data for %d", acceptfd);
-            if ((param = thread_data_init(param, acceptfd, datafd, mutex)) == NULL)
+            if (0)
             {
                 LOGGING("thread data initialize fail");
-                // thread_data_deinit(param, threadid, acceptfd);
             }
             else
             {
-                // add new thread to thread linked list
                 LOGGING("add new thread to thread linked list for");
                 if (add_thread_to_list(param) == 0)
                 {
                     LOGGING("Can't add new thread data pinter to the linked list!");
-                    // thread_data_deinit(param, threadid, acceptfd);
                 }
                 else
                 {
-                    // launch the new thread
                     if (pthread_create(param->ptid, NULL, tcp_echoback, (void *)param) != 0)
                     {
                         LOGGING("thread create fail");
-                        // set the complete variable true to clear the thread data parameter and deallocate the memory
-                        thread_data_deinit(param, param->ptid, param->sockfd);
                     }
                 }
             }
         }
-        // check for signal
+
         if (signal_sign)
         {
-            // if the signal set to one so the process received SIGINT or SIGTERM
             process_kill(sockfd, &timer, mutex);
             break;
         }
@@ -190,11 +164,8 @@ int main(int argc, char *argv[])
             LOGGING("Waiting for new connection request or SIGINT or SIGTERM to kill the process.\n");
             if (datafd)
             {
-                // close the file in the ideal time when no data recived
                 fclose(datafd);
             }
-
-            // loop over threads to check for
             check_for_completed_threads();
         }
     }
@@ -217,7 +188,6 @@ int tcp_socket_setup(int domain, int type, int protocol, struct sockaddr_in addr
 
     if (reuse == true)
     {
-        // Set socket option to enable reuse the local address
         rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&on, (socklen_t)sizeof(on));
         if (rc == -1)
         {
@@ -261,7 +231,6 @@ int tcp_incoming_check(int sockfd, struct sockaddr_in *client, socklen_t addrlen
     if (acceptfd == -1)
     {
         ERROR_HANDLER(accept);
-        // DEBUG_MSG("Failed to accept connection");
     }
     return acceptfd;
 }
@@ -312,9 +281,6 @@ int tcp_send(int acceptfd, char *buffer, int size)
     int rc;
 
     rc = send(acceptfd, buffer, size, 0);
-    /*if (rc != size) {
-        ERROR_HANDLER(send);
-    }*/
     return rc;
 }
 
@@ -328,28 +294,20 @@ void *tcp_echoback(void *thread_param)
 
     do
     {
-        // obtain the mutex
         pthread_mutex_lock(param->mutex);
 
         rc = tcp_receive(param->sockfd, rbuffer, sizeof(rbuffer));
         if (rc > 0)
         {
-            // wait for a packet which ends with '\n' character
             if (strchr(rbuffer, '\n'))
             {
-
-                // check if the recived is command
                 if (strstr(rbuffer, "AESDCHAR_IOCSEEKTO") == rbuffer)
                 {
-                    /* the size of file calculation here will affect the correct
-                     * start offset as we will not read from file beginning so calculate it earlier */
                     int size_read = file_size(fileno(param->datafd));
 
                     sscanf(rbuffer, "AESDCHAR_IOCSEEKTO:%u,%u", &pair.write_cmd, &pair.write_cmd_offset);
                     printf("Found command %u, %u\n", pair.write_cmd, pair.write_cmd_offset);
                     ioctl(fileno(param->datafd), AESDCHAR_IOCSEEKTO, &pair);
-
-                    // read the written data to the file /var/tmp/aesdsocketdata or /dev/aesdchar
                     if (file_read(fileno(param->datafd), sbuffer, size_read) < 0)
                     {
                         SOCKET_LOGGING("[%d] failed to read from file", param->sockfd);
@@ -361,30 +319,22 @@ void *tcp_echoback(void *thread_param)
 
                     if (file_write(fileno(param->datafd), rbuffer, rc) <= 0)
                     {
-                        // perror("failed to write to /var/tmp/aesdsocketdata file\n");
                         SOCKET_LOGGING("[%d] failed to write to file", param->sockfd);
                         break;
                     }
                     fflush(param->datafd);
-
-                    /* the size of file calculation here will not change the correct
-                     * start offset as we need to read from file beginning */
                     int size_read = file_size(fileno(param->datafd));
-                    // read the written data to the file /var/tmp/aesdsocketdata or /dev/aesdchar
                     if (file_read(fileno(param->datafd), sbuffer, size_read) < 0)
                     {
                         SOCKET_LOGGING("[%d] failed to read from file", param->sockfd);
                         break;
                     }
                 }
-
-                // send the received data back to the file /var/tmp/aesdsocketdata
                 if (tcp_send(param->sockfd, sbuffer, strlen(sbuffer)) <= 0)
                 {
                     SOCKET_LOGGING("[%d] failed to send data back", param->sockfd);
                     break;
                 }
-                // clear the buffers
                 memset(rbuffer, 0, sizeof(rbuffer));
                 memset(sbuffer, 0, sizeof(sbuffer));
 
@@ -394,18 +344,16 @@ void *tcp_echoback(void *thread_param)
         else if (rc == 0)
         {
             pthread_mutex_unlock(param->mutex);
-            break; // connection closed
+            break;
         }
         else
         {
             pthread_mutex_unlock(param->mutex);
-            // Error receiving data
             perror("Error receiving data");
             break;
         }
 
     } while (1);
-    // in case the reciveing and sending operations ended witout problems
     param->thread_complete_status = true;
 
     return NULL;
@@ -442,7 +390,7 @@ int tcp_select(int sockfd)
     do
     {
         rc = select(sockfd + 1, &readfds, NULL, NULL, &time);
-    } while (rc == -1 && errno == EINTR); // Retry if interrupted by a signal
+    } while (rc == -1 && errno == EINTR);
 
     if (rc > 0 && FD_ISSET(sockfd, &readfds))
     {
@@ -450,11 +398,10 @@ int tcp_select(int sockfd)
     }
     else if (rc == 0)
     {
-        return 0; // Timeout
+        return 0;
     }
     else
     {
-        // Handle other errors
         perror("select");
         return -1;
     }
@@ -485,11 +432,6 @@ void process_kill(int sockfd, struct itimerval *timer, pthread_mutex_t *mutex)
 #if (USE_AESD_CHAR_DEVICE == 0)
     stop_timer(timer);
 #endif
-
-    // check_for_completed_threads();
-
-    // Remove elements from the list after close and free all file descriptors
-    // printf("loop over the list to terminate\n");
     struct thread_list *current_thread, *tmp;
 
     SLIST_FOREACH_SAFE(current_thread, &head, thread_entries, tmp)
@@ -499,15 +441,10 @@ void process_kill(int sockfd, struct itimerval *timer, pthread_mutex_t *mutex)
             if (pthread_join(*(current_thread->thread_data->ptid), NULL) != 0)
             {
                 perror("pthread_join");
-                // Handle error, e.g., continue, break, or return
             }
-
-            // Clean up resources associated with the thread
             tcp_close(current_thread->thread_data->sockfd);
             free(current_thread->thread_data->ptid);
             free(current_thread->thread_data);
-
-            // Remove the thread entry from the list and free memory
             SLIST_REMOVE(&head, current_thread, thread_list, thread_entries);
             free(current_thread);
         }
@@ -518,9 +455,9 @@ void process_kill(int sockfd, struct itimerval *timer, pthread_mutex_t *mutex)
     {
         fclose(datafd);
     }
-    // close the server socket
+
     tcp_close(sockfd);
-    // destroy mutex
+
     pthread_mutex_destroy(mutex);
     free(mutex);
 #if (USE_AESD_CHAR_DEVICE == 0)
@@ -531,18 +468,12 @@ void process_kill(int sockfd, struct itimerval *timer, pthread_mutex_t *mutex)
 
 int add_thread_to_list(void *thread_param)
 {
-
-    // addd the thread struct pointer to the thread list
-    // printf("addd thread struct pointer to thread list\n");
     struct thread_list *new_thread = malloc(sizeof(struct thread_list));
     if (new_thread == NULL)
     {
         perror("New thread memory allocation failed");
         return 0;
-        // exit(EXIT_FAILURE);
     }
-
-    // assign the new thread_data to the linked list
     new_thread->thread_data = (struct thread_data *)thread_param;
     SLIST_INSERT_HEAD(&head, new_thread, thread_entries);
     return 1;
@@ -550,17 +481,12 @@ int add_thread_to_list(void *thread_param)
 
 void check_for_completed_threads()
 {
-    // printf("check for completed threads \n");
-
     SLIST_FOREACH(current_thread, &head, thread_entries)
     {
-        // if the current thread completed
         if ((current_thread->thread_data->thread_complete_status) == true)
         {
-            // terminating the current thread
             if (pthread_join(*(current_thread->thread_data->ptid), NULL) == -1)
             {
-                // process_kill(current_thread->thread_data->sockfd, param);
                 ERROR_HANDLER(pthread_join);
             }
             SOCKET_LOGGING("Closed Connection from %d", (current_thread->thread_data->sockfd));
@@ -573,18 +499,11 @@ void timer_handler(int signum)
 {
     time_t now;
     struct tm *timeinfo;
-    // char stamp[36] = {0};
     char timestamp[40] = {0};
-    // FILE *file;
-
     time(&now);
     timeinfo = localtime(&now);
     strftime(timestamp, sizeof(timestamp), "timestamp:%a, %d %b %Y %H:%M:%S\n", timeinfo);
-    // strcat(timestamp, stamp);
-    // printf("set timestamp!\n");
-
     pthread_mutex_lock(mutex);
-    // write the timestamp to the file /var/tmp/aesdsocketdata
     if (file_write(fileno(datafd), timestamp, strlen(timestamp)) <= 0)
     {
         perror("failed to write timestamp to file\n");
@@ -592,3 +511,182 @@ void timer_handler(int signum)
 
     pthread_mutex_unlock(mutex);
 }
+
+int file_write(int fd, const char *buffer, int size)
+{
+    if (fd < 0)
+    {
+        fprintf(stderr, "Invalid file descriptor\n");
+        return -1;
+    }
+    ssize_t written = write(fd, buffer, size);
+    if (written == -1)
+    {
+        perror("Failed to write to file");
+        return -1;
+    }
+
+    return written;
+}
+
+int file_size(int fd)
+{
+    int front, end;
+
+    end = lseek(fd, 0, SEEK_END);
+    front = lseek(fd, 0, SEEK_SET);
+
+    return end - front;
+}
+
+int file_read(int fd, char *buffer, int size)
+{
+    char buf[1024] = {0};
+    if (fd < 0)
+    {
+        fprintf(stderr, "Invalid file descriptor\n");
+        return -1;
+    }
+
+    if (!buffer || size <= 0)
+    {
+        fprintf(stderr, "Invalid buffer or size\n");
+        return -1;
+    }
+    ssize_t bytes_read = 0;
+    do
+    {
+        bytes_read = read(fd, buf, size);
+        if (bytes_read == -1)
+        {
+            perror("Failed to read from file");
+            return -1;
+        }
+        else if (bytes_read > 0)
+        {
+            strcat(buffer, buf);
+            size -= bytes_read;
+            memset(buf, 0, sizeof(buf));
+        }
+
+    } while (bytes_read);
+
+    return (int)bytes_read;
+}
+
+void file_delete(char *file)
+{
+    int rc = 0;
+    struct stat status;
+    memset(&status, 0, sizeof(struct stat));
+
+    rc = stat(file, &status);
+    if (rc != -1)
+    {
+        remove(file);
+    }
+}
+
+static void signal_handler(int signal_number)
+{
+    LOGGING("Caught signal, exiting");
+
+    signal_sign = 1;
+}
+
+int signal_setup(int number, ...)
+{
+    int signal, rc;
+    va_list ap;
+    struct sigaction new_action;
+    memset(&new_action, 0, sizeof(struct sigaction));
+
+    new_action.sa_handler = signal_handler;
+    va_start(ap, number);
+    while (number > 0)
+    {
+        signal = va_arg(ap, int);
+        rc = sigaction(signal, &new_action, NULL);
+        if (rc != 0)
+        {
+            break;
+        }
+        number--;
+    }
+
+    va_end(ap);
+
+    return rc;
+}
+
+void timer_setup(int period, struct itimerval *timer, struct sigaction *sa)
+{
+    memset(sa, 0, sizeof(*sa));
+    sa->sa_handler = timer_handler;
+    sigaction(SIGALRM, sa, NULL);
+    sa->sa_handler = timer_handler;
+    sigemptyset(&sa->sa_mask);
+    sa->sa_flags = 0;
+    sigaction(SIGALRM, sa, NULL);
+    timer->it_value.tv_sec = 10;
+    timer->it_value.tv_usec = 0;
+    timer->it_interval.tv_sec = 10;
+    timer->it_interval.tv_usec = 0;
+}
+
+int start_timer(struct itimerval *timer)
+{
+    if (setitimer(ITIMER_REAL, timer, NULL) == -1)
+    {
+        perror("Error calling setitimer");
+        return EXIT_FAILURE;
+    }
+    return 1;
+}
+
+void stop_timer(struct itimerval *timer)
+{
+    timer->it_value.tv_sec = 0;
+    timer->it_value.tv_usec = 0;
+    timer->it_interval.tv_sec = 0;
+    timer->it_interval.tv_usec = 0;
+    setitimer(ITIMER_REAL, timer, NULL);
+}
+
+// struct thread_data *thread_data_init(struct thread_data *param, int sockfd, FILE *datafd, pthread_mutex_t *mutex)
+// {
+
+//     // start by dynamically allocating memory for thread_data struct
+//     DEBUG_MSG("thread_data_init\n");
+//     param = !param ? (struct thread_data *)malloc(sizeof(struct thread_data)) : param;
+//     // Check if creating a new thread would exceed available memory
+//     // return NULL if the initialization failed
+//     if (param == NULL)
+//     {
+//         return param;
+//     }
+//     // initializing the thread
+//     pthread_t *ptid = (pthread_t *)malloc(sizeof(pthread_t));
+//     if (ptid == NULL)
+//     {
+//         LOGGING("thread initialize fail");
+//         thread_data_deinit(param, ptid, sockfd);
+//         return NULL;
+//     }
+
+//     // assigning the struct initial variables
+//     param->ptid = ptid;
+//     param->mutex = mutex;
+//     param->sockfd = sockfd;
+//     param->datafd = datafd;
+//     param->thread_complete_status = false;
+
+//     return param;
+// }
+// void thread_data_deinit(struct thread_data *param, pthread_t *ptid, int sockfd)
+// {
+//     // free and deallocate the memory
+//     free(ptid);
+//     tcp_close(sockfd);
+//     free(param);
+// }
