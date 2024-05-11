@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 
             SOCKET_LOGGING("initialize new thread data for %d", acceptfd);
             // if ((param = thread_data_init(param, acceptfd, datafd, mutex)) == NULL)
-            if (0)
+            if ((param = thread_data_init(param, acceptfd, datafd, mutex)) == NULL)
             {
                 LOGGING("thread data initialize fail");
             }
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
                     if (pthread_create(param->ptid, NULL, tcp_echoback, (void *)param) != 0)
                     {
                         LOGGING("thread create fail");
+                        thread_data_deinit(param, param->ptid, param->sockfd);
                     }
                 }
             }
